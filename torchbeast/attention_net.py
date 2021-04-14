@@ -27,8 +27,7 @@ class AttentionNet(nn.Module):
         c_s: int = 64,
         num_queries: int = 4,
     ):
-        """AttentionNet implementing the attention agent.
-        """
+        """AttentionNet implementing the attention agent."""
         super(AttentionNet, self).__init__()
         self.num_queries = num_queries
         self.num_actions = num_actions
@@ -98,7 +97,7 @@ class AttentionNet(nn.Module):
         core_output_list = []
         core_state = splice_core_state(prev_state)
         prev_output = core_state[0]
-        
+
         # [N, h, w, num_keys] -> [T, B, h, w, num_keys]
         K = K.view(T, B, h, w, -1)
         # [N, h, w, num_values] -> [T, B, h, w, num_values]
@@ -196,14 +195,19 @@ class AttentionNet(nn.Module):
             next_state,
         )
 
+
 class VisionNetwork(nn.Module):
     def __init__(self):
         super(VisionNetwork, self).__init__()
         self.cnn = nn.Sequential(
             # NOTE: The padding choices were not in the paper details, but result in the sizes
             # mentioned by the authors. We should review these.
-            nn.Conv2d(in_channels=3, out_channels=32, kernel_size=8, stride=4, padding=(1,2)),
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2, padding=(2,1)),
+            nn.Conv2d(
+                in_channels=3, out_channels=32, kernel_size=8, stride=4, padding=(1, 2)
+            ),
+            nn.Conv2d(
+                in_channels=32, out_channels=64, kernel_size=4, stride=2, padding=(2, 1)
+            ),
         )
         self.lstm = ConvLSTMCell(input_channels=64, hidden_channels=128, kernel_size=3)
 
@@ -223,9 +227,11 @@ class VisionNetwork(nn.Module):
             nd = nd.view(B, 1, 1, 1)
             vision_lstm_state = tuple((nd * s) for s in vision_lstm_state)
 
-            O_t, vision_state = self.lstm(X_t, vision_lstm_state)
+            # O_t, vision_state = self.lstm(X_t, vision_lstm_state)
+            O_t, vision_lstm_state = self.lstm(X_t, vision_lstm_state)
             output_list.append(O_t)
-        next_vision_state = vision_state
+        # next_vision_state = vision_state
+        next_vision_state = vision_lstm_state
         # (T * B, h, w, c)
         O = torch.cat(output_list, dim=0)
         return O, next_vision_state
@@ -291,10 +297,10 @@ def spatial_softmax(A):
     that has been normalized across its "spatial" dimension `h` and `w`.
 
     .. math::
-    
+
         A^q_{h,w} = exp(A^c_{h,w}) / \sum_{h',w'} A^q_{h',w'}
 
-    Thus, each channel is operated upon separately, and no special meaning is 
+    Thus, each channel is operated upon separately, and no special meaning is
     given to the relative position in the image.
     """
     b, h, w, num_queries = A.size()
@@ -311,14 +317,14 @@ def apply_attention(A, V):
 
     Ignoring batches the operation produces a tensor of shape [num_queries, num_values]
     and follows the following equation:
-    
+
     .. math::
-    
+
         out_{q,v} = \sum_{h,w} A^q_{h,w} * V^v_{h,w}
 
     Parameters
     ----------
-    A : [B, h, w, num_queries] 
+    A : [B, h, w, num_queries]
     V : [B, h, w, num_values]
     --> [B, num_queries, num_values]
     """
@@ -342,11 +348,11 @@ def splice_core_state(state: Tuple) -> Tuple:
 def splice_vision_state(state: Tuple) -> Tuple:
     return state[2], state[3]
 
-  
+
 class ConvLSTMCell(nn.Module):
     def __init__(self, input_channels, hidden_channels, kernel_size):
         """Initialize stateful ConvLSTM cell.
-        
+
         Parameters
         ----------
         input_channels : ``int``
@@ -355,14 +361,14 @@ class ConvLSTMCell(nn.Module):
             Number of channels of hidden state.
         kernel_size : ``int``
             Size of the convolutional kernel.
-            
+
         Paper
         -----
         https://papers.nips.cc/paper/5955-convolutional-lstm-network-a-machine-learning-approach-for-precipitation-nowcasting.pdf
-        
+
         Referenced code
         ---------------
-        https://github.com/automan000/Convolution_LSTM_PyTorch/blob/master/convolution_lstm.py        
+        https://github.com/automan000/Convolution_LSTM_PyTorch/blob/master/convolution_lstm.py
         """
         super(ConvLSTMCell, self).__init__()
 
